@@ -1,0 +1,10 @@
+{
+  "name": "tec-agent",
+  "version": "0.1.0",
+  "description": "Agente CLI para extrair questões do TEC Concursos diretamente pelas rotas /api (sessão persistente).",
+  "type": "module",
+  "bin": { "tec": "src/cli.mjs" },
+  "engines": { "node": ">=20" },
+  "scripts": { "test": "node --test test/" },
+  "license": "MIT"
+}

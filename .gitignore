@@ -1,0 +1,17 @@
+# Dependências
+node_modules/
+
+# Sessão e credenciais locais
+.tec-agent/
+session*.json
+cookies*.json
+*.tmp
+*.log
+
+# Capturas brutas e temporários de engenharia reversa
+cap*.json
+scratch/
+
+# Sistema operacional
+.DS_Store
+Thumbs.db

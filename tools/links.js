@@ -1,0 +1,1 @@
+JSON.stringify([...new Set([...document.querySelectorAll('a[href],form[action]')].map(a=>(a.tagName+' '+(a.href||a.action)+' | '+(a.innerText||'').trim().slice(0,40))))].filter(x=>/tecconcursos/.test(x)&&!/blog|assinar|fale|guias/.test(x)),null,0).replace(/","/g,'\n')
