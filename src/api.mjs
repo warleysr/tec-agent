@@ -186,10 +186,50 @@ export class TecApi {
     return r.list ?? [];
   }
 
+  // ---------- subpastas e organização ----------
+  async subpastas(pastaId) {
+    const id = await this.resolverPasta(pastaId);
+    const r = await this.c.get(`/pastas-cadernos/${id}/itens`);
+    return (r.itens ?? []).filter((item) => item.subpasta);
+  }
+
+  async resolverSubpasta(pastaId, subpastaIdOuNome) {
+    if (!subpastaIdOuNome) return null;
+    if (/^\d+$/.test(String(subpastaIdOuNome))) return Number(subpastaIdOuNome);
+    const subs = await this.subpastas(pastaId);
+    const alvo = strip(subpastaIdOuNome);
+    const hit = subs.find((s) => strip(s.nome) === alvo) || subs.find((s) => strip(s.nome).includes(alvo));
+    if (!hit) throw new Error(`Subpasta "${subpastaIdOuNome}" não encontrada. Subpastas disponíveis: ${subs.map((s) => s.nome).join(", ")}`);
+    return hit.id;
+  }
+
+  async criarSubpasta(pastaId, nome) {
+    const id = await this.resolverPasta(pastaId);
+    const r = await this.c.post(`/pastas-cadernos/${id}/subpastas`, { nome: nome.trim() });
+    const subpasta = r.subpasta ?? r;
+    if (subpasta?.nome !== nome.trim() && subpasta?.id) {
+      await this.c.post(`/pastas-cadernos/${id}/subpastas/${subpasta.id}`, { nome: nome.trim(), _method: "put" });
+      subpasta.nome = nome.trim();
+    }
+    return subpasta;
+  }
+
+  async moverCadernos(cadernoIds, pastaDestinoId, subpastaDestinoId = null) {
+    const ids = Array.isArray(cadernoIds) ? cadernoIds : [cadernoIds];
+    const pastaId = await this.resolverPasta(pastaDestinoId);
+    const subId = subpastaDestinoId ? await this.resolverSubpasta(pastaId, subpastaDestinoId) : null;
+    const payload = { pastaDestino: String(pastaId) };
+    if (subId) payload.subpastaDestino = String(subId);
+    ids.forEach((id, i) => { payload[`cadernos[${i}]`] = String(id); });
+    const r = await this.c.post("/cadernos/multiple-set", payload);
+    return r.boolean === true;
+  }
+
   /** Cria um novo caderno no TEC Concursos a partir de filtros. Retorna { id, nome, pastaId, totalQuestoes, url, mensagem }. */
-  async criarCaderno({ nome, spec, pasta, quantidade, ordenacao = "ALEATORIA" }) {
+  async criarCaderno({ nome, spec, pasta, subpasta, quantidade, ordenacao = "ALEATORIA" }) {
     if (!nome) throw new Error("Nome do caderno é obrigatório.");
     const pastaDestino = await this.resolverPasta(pasta);
+    const subpastaDestino = subpasta ? await this.resolverSubpasta(pastaDestino, subpasta) : null;
     const forma = ordenacao.toUpperCase() === "RECENTES" ? "RECENTES" : "ALEATORIA";
 
     const materias = await this.questoesPorMateria(spec);
@@ -214,20 +254,31 @@ export class TecApi {
     if (r.erro || (r.mensagem && r.mensagem.toLowerCase().includes("erro"))) {
       throw new Error(r.mensagem || r.erro?.mensagem || "Falha ao criar caderno no TEC Concursos.");
     }
+
+    if (subpastaDestino && r.id) {
+      await this.moverCadernos([r.id], pastaDestino, subpastaDestino);
+    }
+
     const totalAlocado = materias.reduce((s, m) => s + (m.alocado || 0), 0);
     return {
       id: r.id,
       nome: nome.trim(),
       pastaId: pastaDestino,
+      subpastaId: subpastaDestino ?? undefined,
       totalQuestoes: totalAlocado,
       mensagem: r.mensagem,
       url: `https://www.tecconcursos.com.br/questoes/cadernos/${r.id}`,
     };
   }
 
-  async listarCadernos(pastaId, { ordenacao = "nome", pagina = 1 } = {}) {
+  async listarCadernos(pastaId, { subpastaId = null, ordenacao = "nome", pagina = 1 } = {}) {
     const id = await this.resolverPasta(pastaId);
-    const r = await this.c.get(`/pastas-cadernos/${id}/itens`, { ordenacao, paginar: true, pagina });
+    let url = `/pastas-cadernos/${id}/itens`;
+    if (subpastaId) {
+      const subId = await this.resolverSubpasta(id, subpastaId);
+      url = `/pastas-cadernos/${id}/subpastas/${subId}/itens`;
+    }
+    const r = await this.c.get(url, { ordenacao, paginar: true, pagina });
     return r.itens ?? [];
   }
 

@@ -66,14 +66,25 @@ tec caderno pastas
 
 # Listar cadernos de uma pasta:
 tec caderno listar --pasta "Sem classificação"
+tec caderno listar --pasta "CGU" --subpasta "Sociedade Brasileira, Desigualdades e Desenvolvimento"
 
-# Criar caderno com limite de questões e filtros específicos:
-tec caderno criar "Backup Cebraspe 2024" \
-  --materia "Informática" \
-  --assunto "Backup" \
+# Criar subpasta temática dentro de uma pasta:
+tec caderno criar-subpasta "ESTADO, DEMOCRACIA, DIREITOS E CIÊNCIA POLÍTICA" --pasta "CGU"
+
+# Listar subpastas existentes de uma pasta:
+tec caderno subpastas --pasta "CGU"
+
+# Mover cadernos existentes para uma pasta e/ou subpasta:
+tec caderno mover 105844965,105844864 --pasta "CGU" --subpasta "ESTADO, DEMOCRACIA, DIREITOS E CIÊNCIA POLÍTICA"
+
+# Criar caderno diretamente alocado em subpasta:
+tec caderno criar "Fundamentos Sociológicos" \
+  --assunto "Estratificação e Mobilidade Social" \
   --banca cebraspe \
   --ano 2024 \
-  --quantidade 10
+  --pasta "CGU" \
+  --subpasta "Sociedade Brasileira, Desigualdades e Desenvolvimento" \
+  --quantidade 50
 
 # Criar caderno ordenado pelas questões mais recentes:
 tec caderno criar "Direito Const FGV" \

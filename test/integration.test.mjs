@@ -81,4 +81,12 @@ test("TecApi cadernos lifecycle", async (t) => {
 
   const itensApos = await api.listarCadernos(criado.pastaId);
   assert.ok(!itensApos.some((it) => it.id === criado.id), "Caderno excluído não deve constar na pasta ativa");
+
+  // Subpastas
+  const subpastas = await api.subpastas("CGU");
+  assert.ok(Array.isArray(subpastas) && subpastas.length >= 2, "Deve listar subpastas da pasta CGU");
+  const subSociedade = subpastas.find((s) => s.nome.includes("Sociedade Brasileira"));
+  assert.ok(subSociedade, "Deve conter subpasta Sociedade Brasileira");
+  const subEstado = subpastas.find((s) => s.nome.includes("ESTADO, DEMOCRACIA"));
+  assert.ok(subEstado, "Deve conter subpasta ESTADO, DEMOCRACIA");
 });

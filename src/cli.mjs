@@ -21,9 +21,12 @@ EXTRAÇÃO (filtros combináveis; listas separadas por vírgula; nomes ou ids)
   tec raw GET|POST /caminho [--param k=v ...]
 
 CADERNOS
-  tec caderno criar "Nome do Caderno" [filtros] [--pasta "Nome/ID"] [--quantidade N] [--ordenacao aleatoria|recentes]
-  tec caderno listar [--pasta "Nome/ID"]
+  tec caderno criar "Nome do Caderno" [filtros] [--pasta "Nome/ID"] [--subpasta "Nome/ID"] [--quantidade N] [--ordenacao aleatoria|recentes]
+  tec caderno listar [--pasta "Nome/ID"] [--subpasta "Nome/ID"]
+  tec caderno mover <id1,id2...> --pasta "Nome/ID" [--subpasta "Nome/ID"]
   tec caderno pastas
+  tec caderno subpastas --pasta "Nome/ID"
+  tec caderno criar-subpasta "Nome" --pasta "Nome/ID"
   tec caderno excluir <id1,id2...>
 
 FILTROS
@@ -179,27 +182,51 @@ async function main() {
     const action = pos[1];
     if (action === "criar") {
       const nome = pos[2];
-      if (!nome) throw new Error('Uso: tec caderno criar "Nome do Caderno" [filtros] [--pasta "Nome/ID"] [--quantidade N] [--ordenacao aleatoria|recentes]');
+      if (!nome) throw new Error('Uso: tec caderno criar "Nome do Caderno" [filtros] [--pasta "Nome/ID"] [--subpasta "Nome/ID"] [--quantidade N] [--ordenacao aleatoria|recentes]');
       const spec = await buildSpec(api, f);
       const res = await api.criarCaderno({
         nome,
         spec,
         pasta: one(f.pasta),
+        subpasta: one(f.subpasta),
         quantidade: one(f.quantidade) ?? one(f.limite),
         ordenacao: one(f.ordenacao) ?? "ALEATORIA",
       });
       return out(res);
     }
     if (action === "listar") {
-      const itens = await api.listarCadernos(one(f.pasta));
+      const itens = await api.listarCadernos(one(f.pasta), { subpastaId: one(f.subpasta) });
       if (!itens.length) return out("Nenhum caderno encontrado.");
       itens.forEach((c) => console.log(`${c.id}\t${c.nome}\t${c.quantidadeItens} questões\t${c.data}`));
       return;
+    }
+    if (action === "mover") {
+      const ids = list(pos[2] ?? f.id);
+      if (!ids.length) throw new Error("Informe os IDs a mover: tec caderno mover 123,456 --pasta 'CGU' [--subpasta 'Nome/ID']");
+      const pasta = one(f.pasta);
+      if (!pasta) throw new Error("--pasta de destino é obrigatória: tec caderno mover 123 --pasta 'CGU'");
+      const ok = await api.moverCadernos(ids, pasta, one(f.subpasta));
+      return out({ ok, movidos: ids, pasta, subpasta: one(f.subpasta) ?? null });
     }
     if (action === "pastas") {
       const pastas = await api.pastas();
       pastas.forEach((p) => console.log(`${p.id}\t${p.nome}\t${p.qtdCadernos} cadernos${p.ativa ? " (ativa)" : ""}`));
       return;
+    }
+    if (action === "subpastas") {
+      const pasta = one(f.pasta) ?? pos[2];
+      if (!pasta) throw new Error("Informe a pasta: tec caderno subpastas --pasta 'CGU'");
+      const subs = await api.subpastas(pasta);
+      if (!subs.length) return out("Nenhuma subpasta encontrada.");
+      subs.forEach((s) => console.log(`${s.id}\t${s.nome}\t${s.quantidadeItens} itens`));
+      return;
+    }
+    if (action === "criar-subpasta") {
+      const nome = pos[2];
+      const pasta = one(f.pasta);
+      if (!nome || !pasta) throw new Error("Uso: tec caderno criar-subpasta 'Nome da Subpasta' --pasta 'Nome/ID'");
+      const sub = await api.criarSubpasta(pasta, nome);
+      return out(sub);
     }
     if (action === "excluir") {
       const ids = list(pos[2] ?? f.id);
@@ -207,7 +234,7 @@ async function main() {
       const ok = await api.excluirCadernos(ids);
       return out({ ok, excluidos: ids });
     }
-    throw new Error('Comando de caderno desconhecido. Use: tec caderno criar|listar|pastas|excluir');
+    throw new Error('Comando de caderno desconhecido. Use: tec caderno criar|listar|mover|pastas|subpastas|criar-subpasta|excluir');
   }
 
   throw new Error(`Comando desconhecido: ${cmd}\n\n${HELP}`);

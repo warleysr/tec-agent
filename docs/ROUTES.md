@@ -168,3 +168,24 @@ No payload das consultas, os filtros são enviados sequencialmente como `filtros
   ```
 - **Retorno**: `{"boolean": true}`
 
+### F. Gerenciamento de Subpastas
+- **Criar Subpasta**: `POST /api/pastas-cadernos/{idPasta}/subpastas`
+  - Payload: `nome=Nome da Subpasta`
+  - Retorno: `{"subpasta": {"id": 1839444, "nome": "Nome da Subpasta", "subpasta": true, ...}}`
+- **Renomear Subpasta**: `POST /api/pastas-cadernos/{idPasta}/subpastas/{idSubpasta}`
+  - Payload: `nome=Novo Nome&_method=put`
+  - Retorno: `{"boolean": true}`
+- **Listar Itens de uma Subpasta**: `GET /api/pastas-cadernos/{idPasta}/subpastas/{idSubpasta}/itens?ordenacao=nome&paginar=true&pagina=1`
+  - Retorno: `{"itens": [{"id": 105883756, "nome": "Caderno 1", ...}]}`
+
+### G. Movimentação de Cadernos entre Pastas e Subpastas
+- **Rota**: `POST /api/cadernos/multiple-set`
+- **Payload** (form-urlencoded):
+  ```
+  pastaDestino=7853487
+  subpastaDestino=1839444
+  cadernos[0]=105883756
+  cadernos[1]=105883816
+  ```
+- **Retorno**: `{"boolean": true}`
+
