@@ -1,157 +1,155 @@
-# TEC Concursos — Agente Extrator de Questões
+# TEC Concursos — Agent Skill & CLI
 
-Agente autônomo e CLI em Node.js (zero dependências externas) para consultar catálogos, filtrar e extrair questões completas do [TEC Concursos](https://www.tecconcursos.com.br) diretamente pelas rotas internas de API com sessão persistente.
-
----
-
-## Recursos
-
-- **Conexão Persistente**: Salva os cookies de autenticação (`TecPermanecerLogado` e `JSESSIONID`) em `~/.tec-agent/session.json`. Mantém o usuário logado por semanas, renovando a sessão automaticamente.
-- **Filtro Avançado por Assunto**: Busca inteligente de assuntos em árvore hierárquica por nome ou por ID, com desambiguação por matéria.
-- **Múltiplos Filtros Combináveis**: Matéria, assunto, banca, órgão, ano, área de concurso, escolaridade, formação profissional, opções de dificuldade e enunciados.
-- **Extração Completa**: Enunciado, alternativas, gabarito oficial identificado (inclusive quando embutido no comentário), detalhes da prova/órgão e comentário do professor.
-- **Formatos de Saída**: Exportação para `jsonl` (streaming com suporte a retomar/resume), `json` e `md` (Markdown formatado para leitura/estudo).
-- **Sem Dependências**: Desenvolvido em ESM puro com `fetch`, `WebSocket` e `node:test` nativos do Node.js.
+Agente autônomo, CLI e **Skill de IA** (compatível com Google Antigravity, Claude Code, Cursor, Codex e OpenCode) para consultar catálogos, filtrar questões, extrair conteúdo completo e **gerar cadernos de estudo diretamente no [TEC Concursos](https://www.tecconcursos.com.br)** pelas rotas internas de API.
 
 ---
 
-## Instalação e Requisitos
+## Recursos Principais
 
-- Node.js >= 20
+- **Skill para Agentes de IA (`SKILL.md`)**: Permite que assistentes como Antigravity ou Claude Code recebam ordens em linguagem natural e executem pesquisas, contagens, extrações e criação de cadernos de estudo de forma autônoma.
+- **Criação de Cadernos no Site**: Cria cadernos diretamente na conta do usuário no TEC Concursos com filtros finos e rateio proporcional de questões por matéria.
+- **Sessão Persistente**: Salva cookies de autenticação (`TecPermanecerLogado` e `JSESSIONID`) em `~/.tec-agent/session.json`, mantendo o usuário conectado por semanas com renovação automática.
+- **Zero Dependências**: Construído em Node.js ESM nativo com `fetch`, `WebSocket` e `node:test` (sem dependências no `node_modules`).
+- **Filtros Avançados**: Matéria, assunto em árvore hierárquica, banca, órgão, ano, área, escolaridade, formação profissional, opções de dificuldade e enunciados.
+- **Extração Completa**: Enunciado, alternativas, tipo da questão, gabarito identificado (mesmo quando no comentário), detalhes da prova e resolução do professor. Formatos de saída: `md` (leitura), `jsonl` (streaming com `--retomar`) e `json`.
+
+---
+
+## 1. Como Utilizar como Skill no Antigravity e Agentes de IA
+
+Este repositório inclui a especificação completa da skill no arquivo [`SKILL.md`](SKILL.md). Com ele, seu agente de IA entende automaticamente a sintaxe da CLI e quando ativá-la.
+
+### Passo 1: Instalar o utilitário `tec` no sistema
+
+Clone o repositório e registre o comando `tec` globalmente:
 
 ```bash
+git clone https://github.com/warleysr/tec-agent.git
 cd tec-agent
-npm test
+npm test   # Executa os 8 testes unitários e de integração
+npm link   # Disponibiliza o comando 'tec' globalmente no seu terminal
 ```
 
-Para usar o comando `tec` globalmente:
-```bash
-npm link
-```
-Ou execute diretamente com `node src/cli.mjs`.
+*(Alternativa sem `npm link`: use diretamente `node <caminho>/src/cli.mjs`)*
 
 ---
 
-## 1. Login e Gerenciamento de Sessão
+### Passo 2: Instalar a Skill no seu Assistente
 
-O formulário de login do TEC Concursos utiliza Google reCAPTCHA. Para garantir segurança e conformidade, o login é realizado de forma assistida:
+#### No Google Antigravity (Recomendado)
 
-### Modo 1: Login Assistido por Navegador (Padrão)
+Você pode instalar a skill globalmente (disponível para todos os seus projetos/conversas) ou localmente em um workspace:
+
+**Opção A — Instalação Global (para todas as sessões do Antigravity):**
+- **Windows (PowerShell):**
+  ```powershell
+  New-Item -ItemType Directory -Force "$HOME\.gemini\config\skills\tec-concursos"
+  Copy-Item "SKILL.md" "$HOME\.gemini\config\skills\tec-concursos\SKILL.md"
+  ```
+- **Linux / macOS:**
+  ```bash
+  mkdir -p ~/.gemini/config/skills/tec-concursos
+  cp SKILL.md ~/.gemini/config/skills/tec-concursos/SKILL.md
+  ```
+
+**Opção B — No Workspace Ativo do Antigravity:**
+Basta copiar a pasta `skills/tec-concursos` para a raiz do seu workspace:
 ```bash
-node src/cli.mjs login
-```
-Abre uma janela do Chrome/Edge. Você insere seu e-mail, senha e resolve o captcha. O agente detecta a confirmação de login, captura os cookies (incluindo `TecPermanecerLogado`), fecha o navegador e salva a sessão.
-
-### Modo 2: Importação de Cookies
-Se já estiver logado no navegador convencional, basta exportar ou copiar os cookies e rodar:
-```bash
-node src/cli.mjs login --cookies "JSESSIONID=...; TecPermanecerLogado=..."
-# Ou aponte para um arquivo json exportado:
-node src/cli.mjs login --cookies cookies.json
+mkdir -p .skills/tec-concursos
+cp SKILL.md .skills/tec-concursos/
 ```
 
-### Verificar Status da Sessão
-```bash
-node src/cli.mjs status
-```
-Retorna confirmação de que a sessão está ativa e a quantidade de pastas/cadernos da sua conta.
-
-### Logout
-```bash
-node src/cli.mjs logout
-```
+O Antigravity detectará automaticamente a skill `tec-concursos` e a ativará sempre que o contexto for relacionado a concursos, questões ou cadernos.
 
 ---
 
-## 2. Consulta de Catálogos (Filtros Disponíveis)
+#### No Claude Code / OpenCode / Codex / Cursor
 
-Antes de extrair questões, você pode pesquisar os nomes e IDs dos filtros:
-
-```bash
-# Listar ou buscar matérias
-node src/cli.mjs catalogo materias --buscar "Administração"
-
-# Listar árvore de assuntos de uma matéria
-node src/cli.mjs catalogo assuntos --materia "Informática" --buscar "Backup"
-
-# Buscar bancas examinadoras
-node src/cli.mjs catalogo bancas --buscar "cebraspe"
-
-# Buscar órgãos
-node src/cli.mjs catalogo orgaos --buscar "tribunal de contas"
-
-# Listar anos, áreas, escolaridades e opções de questão
-node src/cli.mjs catalogo anos
-node src/cli.mjs catalogo areas
-node src/cli.mjs catalogo opcoes
-```
+A especificação [`SKILL.md`](SKILL.md) segue o padrão aberto de Agent Skills:
+- **Claude Code:** Copie `SKILL.md` para `~/.claude/skills/tec-concursos/SKILL.md` ou `.claude/skills/tec-concursos/SKILL.md`.
+- **OpenCode / Hermes:** Importe o repositório diretamente com o comando do seu skill collector.
 
 ---
 
-## 3. Contagem e Estimativa de Questões
+### Passo 3: Exemplos de Prompts para o Agente
 
-Use o comando `contar` para testar os filtros e ver quantas questões existem antes de extrair:
+Com a skill instalada, você pode conversar naturalmente com o agente:
 
-```bash
-# Contar questões por assunto específico
-node src/cli.mjs contar --materia "Informática" --assunto "Backup"
+> *"Quantas questões de Backup do Cebraspe existem no TEC Concursos para o ano de 2024?"*
 
-# Combinar assunto + banca + ano
-node src/cli.mjs contar --materia "Informática" --assunto "Backup" --banca cebraspe --ano 2024
+> *"Crie um caderno no meu TEC Concursos com 20 questões recentes de Direito Constitucional da banca FGV na pasta 'Sem classificação'."*
 
-# Filtrar por dificuldade
-node src/cli.mjs contar --assunto "Accountability e Transparência" --dificuldade facil
-```
+> *"Extraia 10 questões fáceis de Licitações (Lei 14.133/2021) da banca FCC e salve em um arquivo 'licitacoes.md' formatado para estudo."*
 
----
+> *"Pesquise a árvore de assuntos de Banco de Dados dentro da matéria de Informática e me mostre os IDs dos tópicos de SQL."*
 
-## 4. Extração de Questões
-
-### Extrair para Markdown (Ideal para Leitura/Caderno de Estudos)
-```bash
-node src/cli.mjs questoes \
-  --assunto "Accountability e Transparência" \
-  --banca cebraspe \
-  --ano 2023 \
-  --limite 10 \
-  --formato md \
-  --saida caderno_accountability.md
-```
-
-### Extrair para JSONL (Ideal para Processamento em Lote / RAG / Finetuning)
-```bash
-node src/cli.mjs questoes \
-  --materia "Informática" \
-  --assunto "Backup" \
-  --banca cebraspe \
-  --ano 2024 \
-  --formato jsonl \
-  --saida backup_cebraspe_2024.jsonl
-```
-
-### Opções de Extração
-- `--limite <N>`: Quantidade máxima de questões a extrair.
-- `--saida <arquivo>`: Arquivo de destino (se omitido, imprime no terminal).
-- `--formato jsonl|json|md`: Formato dos dados.
-- `--retomar`: Ao salvar em `jsonl`, pula questões que já constam no arquivo caso o download tenha sido interrompido.
-- `--sem-comentario`: Extrai apenas enunciado e alternativas, acelerando a coleta.
-- `--delay <ms>`: Intervalo mínimo entre requisições (padrão: 250ms).
+O agente executará a CLI `tec` em segundo plano, interpretará as respostas e devolverá as informações estruturadas.
 
 ---
 
-## 5. Criação e Gerenciamento de Cadernos de Estudo
+## 2. Autenticação e Login Inicial
 
-Crie cadernos diretamente na sua conta do TEC Concursos para resolver no site ou no app:
+O TEC Concursos utiliza Google reCAPTCHA v2 no login. Por segurança e conformidade, o agente adota login assistido:
 
+### Modo Navegador (Recomendado)
 ```bash
-# Listar pastas da sua conta
+tec login
+```
+Abre uma janela do Chrome/Edge. Insira suas credenciais e resolva o desafio uma única vez. Assim que o login for concluído, o agente captura os cookies de longa duração (`TecPermanecerLogado`), salva em `~/.tec-agent/session.json` e fecha o navegador.
+
+### Modo Importação de Cookies
+Se você já estiver logado no navegador:
+```bash
+tec login --cookies "JSESSIONID=...; TecPermanecerLogado=..."
+# Ou aponte para um arquivo cookies.json:
+tec login --cookies cookies.json
+```
+
+### Checar Status da Conexão
+```bash
+tec status
+```
+Retorna se a sessão está válida, a contagem de pastas/cadernos e o arquivo de sessão.
+
+---
+
+## 3. Comandos da CLI `tec`
+
+### Catálogos e Pesquisa de Filtros
+```bash
+# Pesquisar matérias:
+tec catalogo materias --buscar "Administração"
+
+# Listar assuntos com hierarquia visual:
+tec catalogo assuntos --materia "Informática" --buscar "Backup"
+
+# Pesquisar bancas e órgãos:
+tec catalogo bancas --buscar "cebraspe"
+tec catalogo orgaos --buscar "tribunal de contas"
+
+# Anos, áreas de concurso e opções especiais:
+tec catalogo anos
+tec catalogo areas
+tec catalogo opcoes
+```
+
+### Contar Questões
+```bash
+tec contar --materia "Informática" --assunto "Backup"
+tec contar --materia "Informática" --assunto "Backup" --banca cebraspe --ano 2024
+tec contar --assunto "Accountability e Transparência" --dificuldade facil
+```
+
+### Criar e Gerenciar Cadernos de Estudo
+```bash
+# Listar pastas de cadernos da sua conta:
 tec caderno pastas
 
-# Listar cadernos de uma pasta (padrão: pasta ativa ou "Sem classificação")
+# Listar cadernos existentes:
 tec caderno listar
 tec caderno listar --pasta "CGU"
 
-# Criar caderno com filtros e limite de questões
+# Criar caderno com filtros e quantidade exata de questões:
 tec caderno criar "Backup Cebraspe 2024" \
   --materia "Informática" \
   --assunto "Backup" \
@@ -159,7 +157,7 @@ tec caderno criar "Backup Cebraspe 2024" \
   --ano 2024 \
   --quantidade 10
 
-# Criar caderno com ordenação por questões mais recentes
+# Criar caderno ordenando por questões mais recentes:
 tec caderno criar "Direito Const FGV" \
   --materia 2 \
   --banca fgv \
@@ -168,15 +166,27 @@ tec caderno criar "Direito Const FGV" \
   --pasta "Sem classificação" \
   --ordenacao recentes
 
-# Excluir caderno(s) por ID
+# Excluir cadernos:
 tec caderno excluir 105877951
+```
+
+### Extração de Questões
+```bash
+# Markdown (com enunciado, alternativas, gabarito e resolução):
+tec questoes --assunto "Backup" --banca cebraspe --ano 2024 --limite 10 --formato md --saida caderno.md
+
+# JSONL (ideal para scripts, RAG ou treinamento):
+tec questoes --materia "Informática" --ano 2024 --limite 100 --formato jsonl --saida questoes.jsonl --retomar
+
+# Consultar questão por ID:
+tec questao 3857194
 ```
 
 ---
 
-## 6. Estrutura dos Dados Extraídos
+## 4. Estrutura dos Dados Extraídos
 
-Cada questão no formato JSON contém os seguintes campos:
+Cada questão no formato JSON contém:
 
 ```json
 {
@@ -211,9 +221,9 @@ Cada questão no formato JSON contém os seguintes campos:
 
 ---
 
-## 7. Uso como Módulo / Biblioteca em Node.js
+## 5. Uso como SDK / Biblioteca em Node.js
 
-Você também pode importar o cliente diretamente em outros scripts ou agentes:
+Você também pode importar a biblioteca programaticamente em suas aplicações ou outros agentes:
 
 ```javascript
 import { TecClient, Session } from "./src/client.mjs";
@@ -222,27 +232,33 @@ import { TecApi } from "./src/api.mjs";
 const client = new TecClient({ session: Session.load() });
 const api = new TecApi(client);
 
-// Contar questões de um assunto
+// 1. Contar questões
 const total = await api.contar({ assuntos: ["2150"], bancas: [4] });
-console.log(`Encontradas ${total} questões`);
+console.log(`Disponíveis: ${total} questões`);
 
-// Criar caderno de estudo diretamente pelo código
+// 2. Criar caderno de estudo
 const caderno = await api.criarCaderno({
-  nome: "Caderno IA - Backup",
-  spec: { assuntos: ["2436"], bancas: [4] },
-  quantidade: 10,
+  nome: "Revisão TI 2025",
+  spec: { materias: ["4"], anos: ["2025"] },
+  quantidade: 25,
 });
-console.log(`Caderno criado: ${caderno.url}`);
+console.log(`Caderno criado em: ${caderno.url}`);
 
-// Iterar sobre IDs e buscar questões
-for await (const id of api.ids({ assuntos: ["2150"] }, { limite: 5 })) {
-  const questao = await api.questao(id);
-  console.log(questao.id, questao.gabarito);
+// 3. Iterar sobre questões
+for await (const id of api.ids({ materias: ["4"], anos: ["2025"] }, { limite: 5 })) {
+  const q = await api.questao(id);
+  console.log(q.id, q.gabarito);
 }
 ```
 
 ---
 
-## 8. Documentação Técnica das Rotas
+## 6. Documentação das Rotas da API
 
-Veja o mapeamento completo e especificações dos endpoints em [`docs/ROUTES.md`](docs/ROUTES.md).
+Para detalhes técnicos sobre o mapeamento reverso dos endpoints (`/api/pastas-cadernos`, `/api/cadernos/gerar-caderno`, etc.), consulte [`docs/ROUTES.md`](docs/ROUTES.md).
+
+---
+
+## Licença
+
+MIT.
