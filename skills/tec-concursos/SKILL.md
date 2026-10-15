@@ -1,7 +1,7 @@
 ---
 name: tec-concursos
 description: >
-  Consultar catálogos, contar questões, criar cadernos de estudo e extrair questões diretamente do TEC Concursos
+  Consultar catálogos, contar questões, criar e compartilhar cadernos de estudo e extrair questões diretamente do TEC Concursos
   (https://www.tecconcursos.com.br) por assunto, matéria, banca, órgão, ano, dificuldade e outros filtros,
   utilizando a CLI nativa 'tec'. Ative esta skill sempre que o usuário pedir para pesquisar concursos, filtrar questões,
   gerar cadernos de estudo ou analisar provas anteriores.
@@ -68,6 +68,10 @@ tec caderno pastas
 tec caderno listar --pasta "Sem classificação"
 tec caderno listar --pasta "CGU" --subpasta "Sociedade Brasileira, Desigualdades e Desenvolvimento"
 
+# Gerar links curtos de compartilhamento para um ou mais cadernos:
+tec caderno compartilhar 105844965
+tec caderno compartilhar 105844965,105844864
+
 # Criar subpasta temática dentro de uma pasta:
 tec caderno criar-subpasta "ESTADO, DEMOCRACIA, DIREITOS E CIÊNCIA POLÍTICA" --pasta "CGU"
 
@@ -98,6 +102,8 @@ tec caderno criar "Direito Const FGV" \
 # Excluir cadernos por ID:
 tec caderno excluir 105877951
 ```
+
+O comando `tec caderno compartilhar` gera os links curtos `/s/` do TEC e também retorna o link direto do caderno.
 
 ### 4. Extração de Questões para o Agente / Contexto
 Extraia questões formatadas para apresentar ao usuário, analisar ou salvar em arquivos locais:

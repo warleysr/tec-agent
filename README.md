@@ -8,6 +8,7 @@ Agente autônomo, CLI e **Skill de IA** (compatível com Google Antigravity, Cla
 
 - **Skill para Agentes de IA (`SKILL.md`)**: Permite que assistentes como Antigravity ou Claude Code recebam ordens em linguagem natural e executem pesquisas, contagens, extrações e criação de cadernos de estudo de forma autônoma.
 - **Criação de Cadernos no Site**: Cria cadernos diretamente na conta do usuário no TEC Concursos com filtros finos e rateio proporcional de questões por matéria.
+- **Compartilhamento de Cadernos**: Gera links curtos `/s/` para compartilhar um ou vários cadernos.
 - **Sessão Persistente**: Salva cookies de autenticação (`TecPermanecerLogado` e `JSESSIONID`) em `~/.tec-agent/session.json`, mantendo o usuário conectado por semanas com renovação automática.
 - **Zero Dependências**: Construído em Node.js ESM nativo com `fetch`, `WebSocket` e `node:test` (sem dependências no `node_modules`).
 - **Filtros Avançados**: Matéria, assunto em árvore hierárquica, banca, órgão, ano, área, escolaridade, formação profissional, opções de dificuldade e enunciados.
@@ -148,6 +149,10 @@ tec caderno pastas
 # Listar cadernos existentes:
 tec caderno listar
 tec caderno listar --pasta "CGU"
+
+# Gerar links de compartilhamento curtos:
+tec caderno compartilhar 105844965
+tec caderno compartilhar 105844965,105844864
 
 # Criar caderno com filtros e quantidade exata de questões:
 tec caderno criar "Backup Cebraspe 2024" \

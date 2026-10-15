@@ -282,6 +282,15 @@ export class TecApi {
     return r.itens ?? [];
   }
 
+  async compartilharCaderno(cadernoId) {
+    if (!/^\d+$/.test(String(cadernoId))) throw new Error(`ID de caderno inválido: ${cadernoId}`);
+    const r = await this.c.post(`/cadernos/${cadernoId}/compartilhamento`, {});
+    if (r.erro || !Array.isArray(r.links) || !r.links[0]) {
+      throw new Error(r.erro?.mensagem || "O TEC não retornou um link de compartilhamento para este caderno.");
+    }
+    return { id: Number(cadernoId), linkCompartilhamento: r.links[0], linkDireto: r.links[1] ?? null };
+  }
+
   async excluirCadernos(cadernoIds) {
     const ids = Array.isArray(cadernoIds) ? cadernoIds : [cadernoIds];
     const payload = {};

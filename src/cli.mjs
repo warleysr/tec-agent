@@ -23,6 +23,7 @@ EXTRAÇÃO (filtros combináveis; listas separadas por vírgula; nomes ou ids)
 CADERNOS
   tec caderno criar "Nome do Caderno" [filtros] [--pasta "Nome/ID"] [--subpasta "Nome/ID"] [--quantidade N] [--ordenacao aleatoria|recentes]
   tec caderno listar [--pasta "Nome/ID"] [--subpasta "Nome/ID"]
+  tec caderno compartilhar <id1,id2...>
   tec caderno mover <id1,id2...> --pasta "Nome/ID" [--subpasta "Nome/ID"]
   tec caderno pastas
   tec caderno subpastas --pasta "Nome/ID"
@@ -200,6 +201,13 @@ async function main() {
       itens.forEach((c) => console.log(`${c.id}\t${c.nome}\t${c.quantidadeItens} questões\t${c.data}`));
       return;
     }
+    if (action === "compartilhar") {
+      const ids = list(pos[2] ?? f.id);
+      if (!ids.length) throw new Error("Informe os IDs: tec caderno compartilhar 123,456");
+      const links = [];
+      for (const id of ids) links.push(await api.compartilharCaderno(id));
+      return out(links.length === 1 ? links[0] : links);
+    }
     if (action === "mover") {
       const ids = list(pos[2] ?? f.id);
       if (!ids.length) throw new Error("Informe os IDs a mover: tec caderno mover 123,456 --pasta 'CGU' [--subpasta 'Nome/ID']");
@@ -234,7 +242,7 @@ async function main() {
       const ok = await api.excluirCadernos(ids);
       return out({ ok, excluidos: ids });
     }
-    throw new Error('Comando de caderno desconhecido. Use: tec caderno criar|listar|mover|pastas|subpastas|criar-subpasta|excluir');
+    throw new Error('Comando de caderno desconhecido. Use: tec caderno criar|listar|compartilhar|mover|pastas|subpastas|criar-subpasta|excluir');
   }
 
   throw new Error(`Comando desconhecido: ${cmd}\n\n${HELP}`);
